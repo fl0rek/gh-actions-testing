@@ -104,7 +104,7 @@ jobs:
 
           ---
           🤖 This PR is automatically generated and updated on each merge to main." \
-              --label "automated,release"
+              --label "documentation"
 
             echo "Created new PR"
           fi
