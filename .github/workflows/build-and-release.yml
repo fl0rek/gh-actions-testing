@@ -42,7 +42,7 @@ jobs:
           BRANCH_NAME="release/report-updates"
 
           # Check if PR exists
-          if gh pr list -S "$PR_TITLE" --json number &>/dev/null; then
+          if gh pr list -S "$PR_TITLE" --json number >/dev/null; then
             echo "PR exists, updating branch..."
 
             # Checkout the branch
