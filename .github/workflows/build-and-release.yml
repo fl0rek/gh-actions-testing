@@ -38,9 +38,7 @@ jobs:
 
           # Check if PR exists
           if gh pr list -S "$PR_TITLE" --json number | grep 'number' >/dev/null; then
-            echo "PR exists, updating branch..."
-
-            # Checkout the branch
+            echo "PR exists"
             git fetch origin "$BRANCH_NAME"
             git checkout "$BRANCH_NAME"
             git merge --no-edit origin/main
@@ -48,39 +46,37 @@ jobs:
             typst compile report/report.typ --creation-timestamp 0 
             git add report/report.pdf
 
-            # Check if there are changes to commit
-            if ! git diff --staged --quiet; then
-              git commit -m "$PR_TITLE
-
-          Built from commit: ${{ github.sha }}
-          Commit message: ${{ github.event.head_commit.message }}"
-            fi
-
-            # Push changes
-            git push origin "$BRANCH_NAME"
-            echo "Updated existing PR"
-          else
-            echo "No PR exists, creating new branch and PR..."
-
-            # Create new branch
-            git checkout -b "$BRANCH_NAME"
-
-            typst compile report/report.typ --creation-timestamp 0
-            git add report/report.pdf
-
-            # Check if there are changes to commit
             if git diff --staged --quiet; then
               echo "No changes to commit"
               exit 0
             fi
 
-            # Commit the changes
             git commit -m "$PR_TITLE
 
           Built from commit: ${{ github.sha }}
           Commit message: ${{ github.event.head_commit.message }}"
 
-            # Force push to create/update the branch
+            git push origin "$BRANCH_NAME"
+            echo "Updated existing PR"
+          else
+            echo "No PR found"
+
+            git checkout -b "$BRANCH_NAME"
+
+            typst compile report/report.typ --creation-timestamp 0
+            git add report/report.pdf
+
+            if git diff --staged --quiet; then
+              echo "No changes to commit"
+              exit 0
+            fi
+
+            git commit -m "$PR_TITLE
+
+          Built from commit: ${{ github.sha }}
+          Commit message: ${{ github.event.head_commit.message }}"
+
+            # Force push, in case previous branch wasn't deleted after merge
             git push -f origin "$BRANCH_NAME"
 
             # Create the PR
@@ -90,11 +86,7 @@ jobs:
               --title "$PR_TITLE" \
               --body "## Automated Report Build
 
-          This PR contains the latest built version of the report.
-
           **Build Details:**
-          - Source: \`report/report.typ\`
-          - Built: \`report/report.pdf\`
           - Triggered by: ${{ github.sha }}
           - Commit: ${{ github.event.head_commit.message }}
 
