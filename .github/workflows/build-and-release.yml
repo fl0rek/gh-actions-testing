@@ -38,10 +38,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          PR_TITLE="[ci] build report"
           BRANCH_NAME="release/report-updates"
 
           # Check if PR exists
-          if gh pr view "$BRANCH_NAME" --json number &>/dev/null; then
+          if gh pr list -S "$PR_TITLE" --json number &>/dev/null; then
             echo "PR exists, updating branch..."
 
             # Checkout the branch
@@ -54,7 +55,7 @@ jobs:
 
             # Check if there are changes to commit
             if ! git diff --staged --quiet; then
-              git commit -m "Update built report
+              git commit -m "$PR_TITLE
 
           Built from commit: ${{ github.sha }}
           Commit message: ${{ github.event.head_commit.message }}"
@@ -79,7 +80,7 @@ jobs:
             fi
 
             # Commit the changes
-            git commit -m "Update built report
+            git commit -m "$PR_TITLE
 
           Built from commit: ${{ github.sha }}
           Commit message: ${{ github.event.head_commit.message }}"
@@ -91,7 +92,7 @@ jobs:
             gh pr create \
               --base main \
               --head "$BRANCH_NAME" \
-              --title "Release: Updated Report Build" \
+              --title "$PR_TITLE" \
               --body "## Automated Report Build
 
           This PR contains the latest built version of the report.
