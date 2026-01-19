@@ -40,6 +40,7 @@ Overall, we believe that Typst represents a significant step forward in the fiel
 
 = Methods <sec:methods>
 #lorem(45)
+foo
 
 $ a + b = gamma $ <eq:gamma>
 
