@@ -1,0 +1,110 @@
+name: Build Report and Update Release PR
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Typst
+        uses: typst-community/setup-typst@v3
+        with:
+          typst-version: 'latest'
+
+      - name: Build report
+        run: |
+          cd report
+          typst compile report.typ report.pdf
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create or Update Release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="release/report-updates"
+
+          # Check if PR exists
+          if gh pr view "$BRANCH_NAME" --json number &>/dev/null; then
+            echo "PR exists, updating branch..."
+
+            # Checkout the branch
+            git fetch origin "$BRANCH_NAME"
+            git checkout "$BRANCH_NAME"
+            git merge --no-edit origin/main
+
+            # Add the built PDF
+            git add report/report.pdf
+
+            # Check if there are changes to commit
+            if ! git diff --staged --quiet; then
+              git commit -m "Update built report
+
+          Built from commit: ${{ github.sha }}
+          Commit message: ${{ github.event.head_commit.message }}"
+            fi
+
+            # Push changes
+            git push origin "$BRANCH_NAME"
+            echo "Updated existing PR"
+          else
+            echo "No PR exists, creating new branch and PR..."
+
+            # Create new branch
+            git checkout -b "$BRANCH_NAME"
+
+            # Add the built PDF
+            git add report/report.pdf
+
+            # Check if there are changes to commit
+            if git diff --staged --quiet; then
+              echo "No changes to commit"
+              exit 0
+            fi
+
+            # Commit the changes
+            git commit -m "Update built report
+
+          Built from commit: ${{ github.sha }}
+          Commit message: ${{ github.event.head_commit.message }}"
+
+            # Force push to create/update the branch
+            git push -f origin "$BRANCH_NAME"
+
+            # Create the PR
+            gh pr create \
+              --base main \
+              --head "$BRANCH_NAME" \
+              --title "Release: Updated Report Build" \
+              --body "## Automated Report Build
+
+          This PR contains the latest built version of the report.
+
+          **Build Details:**
+          - Source: \`report/report.typ\`
+          - Built: \`report/report.pdf\`
+          - Triggered by: ${{ github.sha }}
+          - Commit: ${{ github.event.head_commit.message }}
+
+          ---
+          🤖 This PR is automatically generated and updated on each merge to main." \
+              --label "automated,release"
+
+            echo "Created new PR"
+          fi
