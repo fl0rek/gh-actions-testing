@@ -24,11 +24,6 @@ jobs:
         with:
           typst-version: 'latest'
 
-      - name: Build report
-        run: |
-          cd report
-          typst compile report.typ report.pdf
-
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
@@ -42,7 +37,7 @@ jobs:
           BRANCH_NAME="release/report-updates"
 
           # Check if PR exists
-          if gh pr list -S "$PR_TITLE" --json number >/dev/null; then
+          if gh pr list -S "$PR_TITLE" --json number | grep 'number' >/dev/null; then
             echo "PR exists, updating branch..."
 
             # Checkout the branch
@@ -50,7 +45,7 @@ jobs:
             git checkout "$BRANCH_NAME"
             git merge --no-edit origin/main
 
-            # Add the built PDF
+            typst compile report/report.typ
             git add report/report.pdf
 
             # Check if there are changes to commit
@@ -70,7 +65,7 @@ jobs:
             # Create new branch
             git checkout -b "$BRANCH_NAME"
 
-            # Add the built PDF
+            typst compile report/report.typ
             git add report/report.pdf
 
             # Check if there are changes to commit
