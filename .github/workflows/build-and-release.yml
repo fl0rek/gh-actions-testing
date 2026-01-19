@@ -45,7 +45,7 @@ jobs:
             git checkout "$BRANCH_NAME"
             git merge --no-edit origin/main
 
-            typst compile report/report.typ
+            typst compile report/report.typ --creation-timestamp 0 
             git add report/report.pdf
 
             # Check if there are changes to commit
@@ -65,7 +65,7 @@ jobs:
             # Create new branch
             git checkout -b "$BRANCH_NAME"
 
-            typst compile report/report.typ
+            typst compile report/report.typ --creation-timestamp 0
             git add report/report.pdf
 
             # Check if there are changes to commit
