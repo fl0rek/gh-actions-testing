@@ -22,77 +22,21 @@ jobs:
       - name: Setup Typst
         uses: typst-community/setup-typst@v3
         with:
-          typst-version: 'latest'
+          typst-version: '^0.14.0'
 
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create or Update Release PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build report
         run: |
-          PR_TITLE="[ci] build report"
-          BRANCH_NAME="release/report-updates"
+          typst compile report/report.typ --creation-timestamp 0 
 
-          # Check if PR exists
-          if gh pr list -S "$PR_TITLE" --json number | grep 'number' >/dev/null; then
-            echo "PR exists"
-            git fetch origin "$BRANCH_NAME"
-            git checkout "$BRANCH_NAME"
-            git merge --no-edit origin/main
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest_report
+          path: report/report.pdf
+          if-no-files-found: error
 
-            typst compile report/report.typ --creation-timestamp 0 
-            git add report/report.pdf
-
-            if git diff --staged --quiet; then
-              echo "No changes to commit"
-              exit 0
-            fi
-
-            git commit -m "$PR_TITLE
-
-          Built from commit: ${{ github.sha }}
-          Commit message: ${{ github.event.head_commit.message }}"
-
-            git push origin "$BRANCH_NAME"
-            echo "Updated existing PR"
-          else
-            echo "No PR found"
-
-            git checkout -b "$BRANCH_NAME"
-
-            typst compile report/report.typ --creation-timestamp 0
-            git add report/report.pdf
-
-            if git diff --staged --quiet; then
-              echo "No changes to commit"
-              exit 0
-            fi
-
-            git commit -m "$PR_TITLE
-
-          Built from commit: ${{ github.sha }}
-          Commit message: ${{ github.event.head_commit.message }}"
-
-            # Force push, in case previous branch wasn't deleted after merge
-            git push -f origin "$BRANCH_NAME"
-
-            # Create the PR
-            gh pr create \
-              --base main \
-              --head "$BRANCH_NAME" \
-              --title "$PR_TITLE" \
-              --body "## Automated Report Build
-
-          **Build Details:**
-          - Triggered by: ${{ github.sha }}
-          - Commit: ${{ github.event.head_commit.message }}
-
-          ---
-          🤖 This PR is automatically generated and updated on each merge to main." \
-              --label "documentation"
-
-            echo "Created new PR"
-          fi
